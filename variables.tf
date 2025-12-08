@@ -82,7 +82,7 @@ variable "admin_ssh_public_key" { type = string }
 # This value will be checked by the allowed_vm_skus policy.
 variable "vm_size" {
   type        = string
-  default     = "Standard_B2s"
+  default     = "Standard_D2s_v3"
   description = "VM size for the lab. Policies may restrict allowed SKUs."
 }
 
@@ -91,7 +91,7 @@ variable "vm_size" {
 ########################
 variable "default_effect" {
   type    = string
-  default = "Audit"
+  default = "Deny"
   validation {
     condition     = contains(["Audit", "Deny", "Disabled"], var.default_effect)
     error_message = "default_effect must be Audit, Deny, or Disabled."
@@ -106,8 +106,7 @@ variable "allowed_locations" {
 variable "allowed_vm_skus" {
   type = list(string)
   default = [
-    "Standard_B1s",
+    "Standard_B2ms",
     "Standard_B2s",
-    "Standard_B2ms"
   ]
 }
