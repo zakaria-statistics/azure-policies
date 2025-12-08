@@ -1,0 +1,20 @@
+# Terraform artifacts
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform.lock.hcl
+
+# Crash log files
+crash.log
+
+# Specific to my IDEs
+.idea/
+.vscode/
+
+# Local configuration files
+*.tfvars
+*.tfvars.json
+
+# plan output files
+tfplan*
