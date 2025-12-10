@@ -6,8 +6,8 @@ module "compute" {
   location            = azurerm_resource_group.rg.location
   tags                = local.tags
 
-  vm_name              = var.vm_name
-  vm_size              = var.vm_size
+  vm_name              = local.resolved.vm_name
+  vm_size              = local.resolved.vm_size
   admin_username       = var.admin_username
   admin_ssh_public_key = var.admin_ssh_public_key
 
