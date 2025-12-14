@@ -13,3 +13,15 @@ output "policy_set_id" {
 output "policy_definition_ids" {
   value = module.policy.policy_definition_ids
 }
+
+output "admin_ssh_public_key_value" {
+  value      = local.admin_ssh_public_key
+  sensitive  = true
+  depends_on = [data.azurerm_key_vault_secret.admin_ssh_public_key]
+}
+
+output "terraform_client_secret_value" {
+  value      = local.terraform_client_secret
+  sensitive  = true
+  depends_on = [data.azurerm_key_vault_secret.terraform_client_secret]
+}

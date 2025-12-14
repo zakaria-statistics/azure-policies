@@ -1,5 +1,6 @@
 # Terraform artifacts
 .terraform/
+docs/issue-resolution-commands.md
 *.tfstate
 *.tfstate.*
 *.tfplan
@@ -18,3 +19,7 @@ crash.log
 
 # plan output files
 tfplan*
+
+# ignore admin ssh key files
+*_ssh_public_key.pem
+id_rsa*

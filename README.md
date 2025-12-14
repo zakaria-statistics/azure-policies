@@ -19,19 +19,57 @@ Add a new environment by copying one of the existing directories, updating `terr
 
 Each environment keeps state in a dedicated Azure Storage account + blob container:
 
-| Environment | Storage RG                | Storage Account       | Container | Key (blob name)            |
-|-------------|---------------------------|-----------------------|-----------|----------------------------|
-| dev         | `rg-terraform-state-dev`  | `tfstatedevwe1234`    | `tfstate` | `dev.terraform.tfstate`    |
-| prod        | `rg-terraform-state-prod` | `tfstateprodne5678`   | `tfstate` | `prod.terraform.tfstate`   |
+| Environment | Storage RG                       | Storage Account       | Container | Key (blob name)            |
+|-------------|----------------------------------|-----------------------|-----------|----------------------------|
+| dev         | `rg-terraform-state-vault-dev`   | `tfstatedevwe1234`    | `tfstate` | `dev.terraform.tfstate`    |
+| prod        | `rg-terraform-state-vault-prod`  | `tfstateprodne5678`   | `tfstate` | `prod.terraform.tfstate`   |
 
 The backend configuration lives in `envs/<env>/backend.tf`. Azure Blob Storage automatically handles encryption at rest and Terraform handles locking via blob leases.
 
-> Bootstrap note: storage accounts/containers are created outside this repo (a small “platform” project or manual `az` commands). Once they exist, run `terraform init -migrate-state` inside each environment to move any local state into the remote backend.
+> Bootstrap note: storage accounts/containers are created via the separate `bootstrap/` workspace (or the equivalent `az` commands). Once they exist, run `terraform init -migrate-state` inside each environment to move any local state into the remote backend.
+
+## Secrets via Key Vault
+
+Provider credentials and VM SSH keys live in Azure Key Vault, so `terraform.tfvars` no longer carries secrets. Each environment reads them from its vault at runtime:
+
+| Environment | Key Vault               | Resource Group                 | Required Secret Names                                      |
+|-------------|-------------------------|--------------------------------|------------------------------------------------------------|
+| dev         | `kv-terraform-dev-we-01`  | `rg-terraform-state-vault-dev`  | `terraform-sp-client-secret`, `terraform-admin-ssh-public-key` |
+| prod        | `kv-terraform-prod-ne-01` | `rg-terraform-state-vault-prod` | `terraform-sp-client-secret`, `terraform-admin-ssh-public-key` |
+
+Populate each secret once, e.g.:
+
+```bash
+az keyvault secret set \
+  --vault-name kv-terraform-dev-we-01 \
+  --name terraform-sp-client-secret \
+  --value '<service-principal-secret>'
+
+az keyvault secret set \
+  --vault-name kv-terraform-dev-we-01 \
+  --name terraform-admin-ssh-public-key \
+  --value 'ssh-rsa AAAA...'
+```
+
+Configure the environment by pointing to the vault + secret names in `terraform.tfvars`:
+
+```hcl
+key_vault_name                   = "kv-terraform-dev-we-01"
+key_vault_resource_group         = "rg-terraform-state-vault-dev"
+client_secret_secret_name        = "terraform-sp-client-secret"
+admin_ssh_public_key_secret_name = "terraform-admin-ssh-public-key"
+```
+
+Leave `client_secret` and `admin_ssh_public_key` unset (or `null`) in `terraform.tfvars`; Terraform now pulls both values directly from the referenced Key Vault secrets unless you explicitly override them.
+
+Terraform loads `client_secret` and `admin_ssh_public_key` from the Key Vault data sources defined in `envs/<env>/secrets.tf`. Inline values in `terraform.tfvars` still override the vault if you supply them, which can help with rotations or break-glass overrides. After the vault is seeded you can delete any lingering plaintext secrets from version control.
+
+Because those data sources authenticate through the Azure CLI (`use_cli = true` on the bootstrap provider), run `az login` (or ensure your CI job provides an Azure CLI context) before `terraform init/plan/apply` so Terraform can read the secrets needed to configure the service principal provider.
 
 ## Running an Environment
 
 1. **Authenticate**: ensure the Terraform service principal has at least `Contributor` plus `User Access Administrator` on the target resource group so it can create role assignments and policy objects.
-2. **Set variables**: edit `envs/<env>/terraform.tfvars` with subscription IDs, SP credentials, region, tags, networking ranges, VM settings, and policy defaults.
+2. **Set variables**: edit `envs/<env>/terraform.tfvars` with subscription IDs, SP IDs, Key Vault references, region, tags, networking ranges, VM settings, and policy defaults. Secrets themselves live in Key Vault.
 3. **Init**:
    ```bash
    cd envs/dev   # or envs/prod

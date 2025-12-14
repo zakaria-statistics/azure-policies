@@ -9,7 +9,7 @@ module "compute" {
   vm_name              = var.vm_name
   vm_size              = var.vm_size
   admin_username       = var.admin_username
-  admin_ssh_public_key = var.admin_ssh_public_key
+  admin_ssh_public_key = local.admin_ssh_public_key
 
   subnet_id = module.network.subnet_id
 }

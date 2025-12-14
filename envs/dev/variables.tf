@@ -12,14 +12,36 @@ variable "client_id" {
 }
 
 variable "client_secret" {
-  description = "Service principal client secret (password)"
+  description = "Service principal client secret (password). Leave null to load from Key Vault."
   type        = string
   sensitive   = true
+  default     = null
 }
 
 variable "tenant_id" {
   description = "Azure AD tenant ID"
   type        = string
+}
+
+variable "key_vault_name" {
+  description = "Key Vault name containing Terraform secrets."
+  type        = string
+}
+
+variable "key_vault_resource_group" {
+  description = "Resource group hosting the Key Vault."
+  type        = string
+}
+
+variable "client_secret_secret_name" {
+  description = "Key Vault secret name that stores the Terraform SP client secret."
+  type        = string
+}
+
+variable "admin_ssh_public_key_secret_name" {
+  description = "Key Vault secret name that stores the VM admin SSH public key (optional if admin_ssh_public_key is provided)."
+  type        = string
+  default     = ""
 }
 
 variable "location" {
@@ -72,7 +94,11 @@ variable "admin_username" {
   type    = string
   default = "azureadmin"
 }
-variable "admin_ssh_public_key" { type = string }
+variable "admin_ssh_public_key" {
+  type        = string
+  default     = null
+  description = "Optional inline SSH public key. Leave null to load from Key Vault."
+}
 
 # This value will be checked by the allowed_vm_skus policy.
 variable "vm_size" {
